@@ -15,12 +15,12 @@ public class UserController {
 
     @PostMapping("/signup")
     public String signUp() {
-        return;
+        return userService.signup();
     }
 
     @PostMapping("/login")
     public String login() {
-        return;
+        return userService.signin();
     }
 
     @GetMapping(value = "/{username}")
