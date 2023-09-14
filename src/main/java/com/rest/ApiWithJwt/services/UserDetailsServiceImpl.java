@@ -2,6 +2,7 @@ package com.rest.ApiWithJwt.services;
 
 import com.rest.ApiWithJwt.entities.User;
 import com.rest.ApiWithJwt.repositories.UserRepository;
+import com.rest.ApiWithJwt.security.JwtUserDetails;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
