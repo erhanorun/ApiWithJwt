@@ -1,6 +1,8 @@
 package com.rest.ApiWithJwt.controllers;
 
 import com.rest.ApiWithJwt.entities.User;
+import com.rest.ApiWithJwt.exceptions.UserNotFoundException;
+import com.rest.ApiWithJwt.responses.UserResponse;
 import com.rest.ApiWithJwt.services.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,4 +56,9 @@ public class UserController {
         userService.deleteById(userId);
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    private void handleUserNotFound() {
+
+    }
 }
