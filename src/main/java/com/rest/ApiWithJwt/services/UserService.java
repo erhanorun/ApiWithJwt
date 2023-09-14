@@ -1,7 +1,9 @@
-package com.rest.ApiWithJwt.service;
+package com.rest.ApiWithJwt.services;
 
-import com.rest.ApiWithJwt.model.UserInfo;
-import com.rest.ApiWithJwt.repository.UserRepository;
+
+import com.rest.ApiWithJwt.entities.User;
+import com.rest.ApiWithJwt.repositories.UserRepository;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,39 +18,39 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    public List<UserInfo> getAllUsers() {
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
-    public UserInfo saveOneUser(UserInfo newUser) {
+    public User saveOneUser(User newUser) {
         return userRepository.save(newUser);
     }
 
-    public UserInfo getOneUserById(Long userId) {
+    public User getOneUserById(Long userId) {
         return userRepository.findById(userId).orElse(null);
     }
 
-    public UserInfo updateOneUser(Long userId, UserInfo newUser) {
-        Optional<UserInfo> user = userRepository.findById(userId);
-        if(user.isPresent()) {
-            UserInfo foundUser = user.get();
+    public User updateOneUser(Long userId, User newUser) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isPresent()) {
+            User foundUser = user.get();
             foundUser.setUsername(newUser.getUsername());
             foundUser.setPassword(newUser.getPassword());
             userRepository.save(foundUser);
             return foundUser;
-        }else
+        } else
             return null;
     }
 
     public void deleteById(Long userId) {
         try {
             userRepository.deleteById(userId);
-        }catch(EmptyResultDataAccessException e) {
-            System.out.println("User "+userId+" doesn't exist");
+        } catch (EmptyResultDataAccessException e) {
+            System.out.println("User " + userId + " doesn't exist");
         }
     }
 
-    public UserInfo getOneUserByUserName(String userName) {
+    public User getOneUserByUserName(String userName) {
         return userRepository.findByUsername(userName);
     }
 
