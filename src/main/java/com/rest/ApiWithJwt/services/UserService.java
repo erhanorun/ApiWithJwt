@@ -50,7 +50,7 @@ public class UserService {
         }
     }
 
-    public User getOneUserByUserName(String userName) {
+    public User getOneUserByUsername(String userName) {
         return userRepository.findByUsername(userName);
     }
 

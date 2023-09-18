@@ -23,8 +23,8 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private final PasswordEncoder passwordEncoder;
     private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthController(AuthenticationManager authenticationManager, UserService userService,
                           PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
@@ -40,7 +40,7 @@ public class AuthController {
         Authentication auth = authenticationManager.authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwtToken = jwtTokenProvider.generateJwtToken(auth);
-        User user = userService.getOneUserByUserName(loginRequest.getUsername());
+        User user = userService.getOneUserByUsername(loginRequest.getUsername());
         AuthResponse authResponse = new AuthResponse();
         authResponse.setAccessToken("Bearer " + jwtToken);
         authResponse.setUserId(user.getId());
@@ -50,8 +50,8 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody UserRequest registerRequest) {
         AuthResponse authResponse = new AuthResponse();
-        if (userService.getOneUserByUserName(registerRequest.getUsername()) != null) {
-            authResponse.setMessage("Username already in use.");
+        if (userService.getOneUserByUsername(registerRequest.getUsername()) != null) {
+            authResponse.setMessage("Username already in use!");
             return new ResponseEntity<>(authResponse, HttpStatus.BAD_REQUEST);
         }
 

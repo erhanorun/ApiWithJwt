@@ -18,16 +18,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import java.util.Collections;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final UserDetailsServiceImpl userDetailsService;
-
     private final JwtAuthenticationEntryPoint handler;
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService, JwtAuthenticationEntryPoint handler) {
-        this.userDetailsService = userDetailsService;
         this.handler = handler;
     }
 
@@ -51,7 +50,7 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("*");
+        config.setAllowedOriginPatterns(Collections.singletonList("*"));
         config.addAllowedHeader("*");
         config.addAllowedMethod("OPTIONS");
         config.addAllowedMethod("HEAD");
@@ -74,7 +73,8 @@ public class SecurityConfig {
                 .exceptionHandling().authenticationEntryPoint(handler).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
-                .requestMatchers("/auth/**")
+                .requestMatchers("/auth/**", "/v3/api-docs/**", "/configuration/ui", "/swagger-resources/**",
+                        "/configuration/security", "/swagger-ui/**", "/webjars/**")
                 .permitAll()
                 .anyRequest().authenticated();
 
