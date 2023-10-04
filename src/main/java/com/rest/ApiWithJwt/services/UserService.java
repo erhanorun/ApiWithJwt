@@ -1,57 +1,60 @@
 package com.rest.ApiWithJwt.services;
 
-
-import com.rest.ApiWithJwt.entities.User;
+import com.rest.ApiWithJwt.dto.UserDto;
+import com.rest.ApiWithJwt.entity.Authority;
+import com.rest.ApiWithJwt.entity.User;
+import com.rest.ApiWithJwt.exceptions.DuplicateMemberException;
+import com.rest.ApiWithJwt.exceptions.NotFoundMemberException;
 import com.rest.ApiWithJwt.repositories.UserRepository;
-import org.springframework.dao.EmptyResultDataAccessException;
+import com.rest.ApiWithJwt.util.SecurityUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.Collections;
 
 @Service
 public class UserService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public User saveOneUser(User newUser) {
-        return userRepository.save(newUser);
-    }
-
-    public User getOneUserById(Long userId) {
-        return userRepository.findById(userId).orElse(null);
-    }
-
-    public User updateOneUser(Long userId, User newUser) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isPresent()) {
-            User foundUser = user.get();
-            foundUser.setUsername(newUser.getUsername());
-            foundUser.setPassword(newUser.getPassword());
-            userRepository.save(foundUser);
-            return foundUser;
-        } else
-            return null;
-    }
-
-    public void deleteById(Long userId) {
-        try {
-            userRepository.deleteById(userId);
-        } catch (EmptyResultDataAccessException e) {
-            System.out.println("User " + userId + " doesn't exist");
+    @Transactional
+    public UserDto signup(UserDto userDto) {
+        if (userRepository.findOneWithAuthoritiesByUsername(userDto.getUsername()).orElse(null) != null) {
+            throw new DuplicateMemberException("This user is already registered.");
         }
+
+        Authority authority = Authority.builder()
+                .authorityName("ROLE_USER")
+                .build();
+
+        User user = User.builder()
+                .username(userDto.getUsername())
+                .password(passwordEncoder.encode(userDto.getPassword()))
+                .nickname(userDto.getNickname())
+                .authorities(Collections.singleton(authority))
+                .activated(true)
+                .build();
+
+        return UserDto.from(userRepository.save(user));
     }
 
-    public User getOneUserByUsername(String userName) {
-        return userRepository.findByUsername(userName);
+    @Transactional(readOnly = true)
+    public UserDto getUserWithAuthorities(String username) {
+        return UserDto.from(userRepository.findOneWithAuthoritiesByUsername(username).orElse(null));
     }
 
+    @Transactional(readOnly = true)
+    public UserDto getMyUserWithAuthorities() {
+        return UserDto.from(
+                SecurityUtil.getCurrentUsername()
+                        .flatMap(userRepository::findOneWithAuthoritiesByUsername)
+                        .orElseThrow(() -> new NotFoundMemberException("Member not found"))
+        );
+    }
 }

@@ -1,64 +1,51 @@
 package com.rest.ApiWithJwt.controllers;
 
-import com.rest.ApiWithJwt.entities.User;
-import com.rest.ApiWithJwt.exceptions.UserNotFoundException;
-import com.rest.ApiWithJwt.responses.UserResponse;
+import com.rest.ApiWithJwt.dto.UserDto;
 import com.rest.ApiWithJwt.services.UserService;
-import org.springframework.http.HttpStatus;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.io.IOException;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api")
 public class UserController {
-
     private final UserService userService;
 
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    @GetMapping
-    public List<UserResponse> getAllUsers() {
-        return userService.getAllUsers().stream().map(UserResponse::new).toList();
+    @GetMapping("/hello")
+    public ResponseEntity<String> hello() {
+        return ResponseEntity.ok("hello");
     }
 
-    @PostMapping
-    public ResponseEntity<Void> createUser(@RequestBody User newUser) {
-        User user = userService.saveOneUser(newUser);
-        if (user != null)
-            return new ResponseEntity<>(HttpStatus.CREATED);
-        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+    @PostMapping("/test-redirect")
+    public void testRedirect(HttpServletResponse response) throws IOException {
+        response.sendRedirect("/api/user");
     }
 
-    @GetMapping("/{userId}")
-    public UserResponse getOneUser(@PathVariable Long userId) {
-        User user = userService.getOneUserById(userId);
-        if (user == null) {
-            throw new UserNotFoundException();
-        }
-        return new UserResponse(user);
+    @PostMapping("/signup")
+    public ResponseEntity<UserDto> signup(
+            @Valid @RequestBody UserDto userDto
+    ) {
+        return ResponseEntity.ok(userService.signup(userDto));
     }
 
-    @PutMapping("/{userId}")
-    public ResponseEntity<Void> updateOneUser(@PathVariable Long userId, @RequestBody User newUser) {
-        User user = userService.updateOneUser(userId, newUser);
-        if (user != null)
-            return new ResponseEntity<>(HttpStatus.OK);
-        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-
+    @GetMapping("/user")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<UserDto> getMyUserInfo(HttpServletRequest request) {
+        return ResponseEntity.ok(userService.getMyUserWithAuthorities());
     }
 
-    @DeleteMapping("/{userId}")
-    public void deleteOneUser(@PathVariable Long userId) {
-        userService.deleteById(userId);
-    }
-
-    @ExceptionHandler(UserNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    private void handleUserNotFound() {
-
+    @GetMapping("/user/{username}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ResponseEntity<UserDto> getUserInfo(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getUserWithAuthorities(username));
     }
 }

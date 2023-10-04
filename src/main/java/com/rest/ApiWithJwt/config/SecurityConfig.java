@@ -1,12 +1,13 @@
 package com.rest.ApiWithJwt.config;
 
-import com.rest.ApiWithJwt.security.JwtAuthenticationEntryPoint;
-import com.rest.ApiWithJwt.security.JwtAuthenticationFilter;
-import com.rest.ApiWithJwt.services.UserDetailsServiceImpl;
+import com.rest.ApiWithJwt.jwt.JwtAccessDeniedHandler;
+import com.rest.ApiWithJwt.jwt.JwtAuthenticationEntryPoint;
+import com.rest.ApiWithJwt.jwt.JwtSecurityConfig;
+import com.rest.ApiWithJwt.jwt.TokenProvider;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,25 +15,27 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import java.util.Collections;
-
-@Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
+@Configuration
 public class SecurityConfig {
+    private final TokenProvider tokenProvider;
+    private final CorsFilter corsFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
-    private final JwtAuthenticationEntryPoint handler;
-
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService, JwtAuthenticationEntryPoint handler) {
-        this.handler = handler;
-    }
-
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter();
+    public SecurityConfig(
+            TokenProvider tokenProvider,
+            CorsFilter corsFilter,
+            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+            JwtAccessDeniedHandler jwtAccessDeniedHandler
+    ) {
+        this.tokenProvider = tokenProvider;
+        this.corsFilter = corsFilter;
+        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
+        this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
     }
 
     @Bean
@@ -41,44 +44,34 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
 
-    @Bean
-    public CorsFilter corsFilter() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
-        config.setAllowedOriginPatterns(Collections.singletonList("*"));
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("OPTIONS");
-        config.addAllowedMethod("HEAD");
-        config.addAllowedMethod("GET");
-        config.addAllowedMethod("PUT");
-        config.addAllowedMethod("POST");
-        config.addAllowedMethod("DELETE");
-        config.addAllowedMethod("PATCH");
-        source.registerCorsConfiguration("/**", config);
-        return new CorsFilter(source);
-    }
+                .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .accessDeniedHandler(jwtAccessDeniedHandler)
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
 
-    @SuppressWarnings("removal")
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity
-                .cors()
-                .and()
-                .csrf().disable()
-                .exceptionHandling().authenticationEntryPoint(handler).and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests()
-                .requestMatchers("/auth/**", "/v3/api-docs/**", "/configuration/ui", "/swagger-resources/**",
-                        "/configuration/security", "/swagger-ui/**", "/webjars/**")
-                .permitAll()
-                .anyRequest().authenticated();
+                .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
+                        .requestMatchers("/api/hello", "/api/authenticate", "/api/signup").permitAll()
+                        .requestMatchers(PathRequest.toH2Console()).permitAll()
+                        .anyRequest().authenticated()
+                )
 
-        httpSecurity.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-        return httpSecurity.build();
+                .sessionManagement(sessionManagement ->
+                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // enable h2-console
+                .headers(headers ->
+                        headers.frameOptions(options ->
+                                options.sameOrigin()
+                        )
+                )
+
+                .apply(new JwtSecurityConfig(tokenProvider));
+        return http.build();
     }
 }
