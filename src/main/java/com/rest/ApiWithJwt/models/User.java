@@ -1,9 +1,7 @@
 package com.rest.ApiWithJwt.models;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -21,15 +19,21 @@ public class User {
 
     @NotBlank
     @Size(max = 20)
+    @NotNull
+    @NotEmpty
     private String username;
 
     @NotBlank
     @Size(max = 50)
     @Email
+    @NotNull
+    @NotEmpty
     private String email;
 
     @NotBlank
     @Size(max = 120)
+    @NotNull
+    @NotEmpty
     private String password;
 
     @ManyToMany(fetch = FetchType.LAZY)

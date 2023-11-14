@@ -2,6 +2,7 @@ package com.rest.ApiWithJwt.payload.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.Set;
@@ -14,12 +15,14 @@ public class SignupRequest {
     @NotBlank
     @Size(max = 50)
     @Email
+    @NotNull
     private String email;
 
     private Set<String> role;
 
     @NotBlank
     @Size(min = 6, max = 40)
+    @NotNull
     private String password;
 
     public String getUsername() {
